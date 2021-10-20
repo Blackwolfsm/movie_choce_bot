@@ -130,3 +130,4 @@ dmypy.json
 test.py
 *vscode
 movie_choice.db
+/venv_bot

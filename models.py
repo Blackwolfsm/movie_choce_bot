@@ -1,10 +1,17 @@
+from datetime import datetime as dt
+
 from peewee import *
 
 
 db = SqliteDatabase('movie_choice.db')
 
 
-class Members(Model):
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+
+class Members(BaseModel):
     id_telegram = IntegerField(unique=True, verbose_name='Ид телеграма', primary_key=True)
     nickname = CharField()
     is_active = BooleanField(default=True)
@@ -12,18 +19,13 @@ class Members(Model):
     def __repr__(self):
         return f'{self.nickname} - {self.id_telegram}'
 
-    class Meta:
-        database = db
 
-
-class MovieTree(Model):
-    id_from = ForeignKeyField(Members, field='id_telegram', related_name='recommended')
+class MovieTree(BaseModel):
+    id_from = ForeignKeyField(Members, field='id_telegram', related_name='recommended',
+                              on_delete='cascade')
     id_to = ForeignKeyField(Members, field='id_telegram', related_name='watcher')
-    date = DateField()
+    date = DateTimeField(default=dt.now())
     movie = CharField()
-
-    class Meta:
-        database = db
 
 
 if __name__ == '__main__':
