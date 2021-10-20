@@ -5,7 +5,7 @@ db = SqliteDatabase('movie_choice.db')
 
 
 class Members(Model):
-    id_telegram = IntegerField(unique=True, column_name='Ид телеграма', primary_key=True)
+    id_telegram = IntegerField(unique=True, verbose_name='Ид телеграма', primary_key=True)
     nickname = CharField()
     is_active = BooleanField(default=True)
 
@@ -25,3 +25,7 @@ class MovieTree(Model):
     class Meta:
         database = db
 
+
+if __name__ == '__main__':
+    Members.create_table()
+    MovieTree.create_table()
