@@ -3,7 +3,8 @@ from datetime import datetime as dt
 from peewee import *
 
 
-db = SqliteDatabase('movie_choice.db')
+NAME_DB = 'movie_choice.db'
+db = SqliteDatabase(NAME_DB)
 
 
 class BaseModel(Model):
@@ -13,11 +14,16 @@ class BaseModel(Model):
 
 class Members(BaseModel):
     id_telegram = IntegerField(unique=True, verbose_name='Ид телеграма', primary_key=True)
-    nickname = CharField()
+    first_name = CharField(max_length=100)
+    last_name = CharField(max_length=100)
+    date_registration = DateTimeField(default=dt.now())
     is_active = BooleanField(default=True)
 
-    def __repr__(self):
-        return f'{self.nickname} - {self.id_telegram}'
+    def __str__(self):
+        return f'{self.first_name} {self.last_name} (id: {self.id_telegram})'
+    
+    class Meta:
+        order_by = ('date_registration',)
 
 
 class MovieTree(BaseModel):
