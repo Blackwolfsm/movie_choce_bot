@@ -5,7 +5,7 @@ from aiogram import Dispatcher
 from aiogram.utils import executor
 import dotenv
 
-from utils_db import check_have_member, check_active, create_user, activated_user, deactivated_user
+from utils_db import check_have_member, check_active, create_user, activated_user, deactivated_user, count_active_members
 from templates import MESSAGES
 
 dotenv.load_dotenv()
@@ -69,6 +69,17 @@ async def deactivate_user(message: types.Message):
             await message.reply(MESSAGES['not_reg'])
     except Exception as e:
         await bot.send_message(ID_FOR_REPORT, MESSAGES['report_error'].format(e))
+
+
+dp.message_handler(commands=['roll'])
+async def roll_members(message: types.Message):
+    """Назначает каждому участнику другого случайного участника"""
+    count_member = count_active_members()
+    if count_member() > 1:
+
+    else:
+        await message.reply(MESSAGES['roll_not_active'].format(count_member))
+
 
 
 if __name__ == '__main__':
