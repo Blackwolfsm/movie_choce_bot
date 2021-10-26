@@ -20,7 +20,6 @@ ID_BOT = 1361009578
 @dp.message_handler(commands=['start'])
 async def hello_from_start(message: types.Message):
     MESSAGE['new'] = message
-    MESSAGE['gmc'] = await message.chat.get_administrators()
     MESSAGE['1'] = await message.chat.get_member_count()
     MESSAGE['2'] = await message.chat.get_members_count()
     await message.reply(f'{MESSAGE["1"]}')

@@ -3,9 +3,16 @@ import os
 from aiogram import Bot, types
 from aiogram import Dispatcher
 from aiogram.utils import executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import dotenv
 
-from utils_db import check_have_member, check_active, create_user, activated_user, deactivated_user, count_active_members
+from utils_db import (check_have_member, check_active, create_roll, create_user, activated_user,
+                      deactivated_user, count_active_members, get_ids_active_members,
+                      make_purpose_rec, get_last_name, get_first_name,
+                      get_ids_advisor_active_roll, get_id_watcher_from_advisor_last_roll,
+                      get_ids_watchers_active_roll, get_id_advisor_from_wathcer_last_roll,
+                      set_movie_for_purpose)
+from utils import shuffle_members, AdvisorStates
 from templates import MESSAGES
 
 dotenv.load_dotenv()
@@ -13,7 +20,9 @@ TOKEN = os.getenv('TOKEN_BOT')
 ID_FOR_REPORT = 681108032
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher(bot, storage=MemoryStorage())
+
+movies_temp = dict()
 
 
 @dp.message_handler(commands=['join'])
@@ -71,15 +80,104 @@ async def deactivate_user(message: types.Message):
         await bot.send_message(ID_FOR_REPORT, MESSAGES['report_error'].format(e))
 
 
-dp.message_handler(commands=['roll'])
+@dp.message_handler(commands=['roll'])
 async def roll_members(message: types.Message):
     """Назначает каждому участнику другого случайного участника"""
     count_member = count_active_members()
-    if count_member() > 1:
-
+    if count_member > 1:
+        id_roll = create_roll()
+        links = shuffle_members(get_ids_active_members())
+        for advisor_id, watcher_id in zip(links[0], links[1]):
+            make_purpose_rec(id_advisor=int(advisor_id), id_watcher=int(watcher_id), id_roll=id_roll)
+            await set_find_movie(id_member=advisor_id)
+            text_for_advisor = (f'Вы назначаете фильм для {get_first_name(watcher_id)} {get_last_name(watcher_id)}.'
+                                f'\n Напишите сюда фильм который вы посоветуете для просмотра!')
+            await bot.send_message(chat_id=advisor_id, text=text_for_advisor)
+            
+            await message.reply(f'{get_first_name(watcher_id)} {get_last_name(watcher_id)} '
+                                f'задает фильм для {get_first_name(watcher_id)} {get_last_name(watcher_id)}')
     else:
         await message.reply(MESSAGES['roll_not_active'].format(count_member))
 
+
+async def set_find_movie(id_member: int):
+    state = dp.current_state(user=id_member)
+    await state.set_state(AdvisorStates.FIND_MOVIE[0])
+
+
+@dp.message_handler(commands=['accept'])
+async def accept_movie(message: types.Message):
+    if message.chat.id in get_ids_watchers_active_roll():
+        id_advisor = get_id_advisor_from_wathcer_last_roll()
+        state_advisor = dp.current_state(user=id_advisor)
+        if await state_advisor.get_state() == 'send_movie':
+            movie = movies_temp.pop(str(id_advisor))
+            set_movie_for_purpose(id_watcher=message.from_user.id,
+                                  title_movie=movie)
+            await state_advisor.reset_state()
+            await message.reply('Приятного просмотра')
+            await bot.send_message(chat_id=id_advisor,
+                                   text='Ваш фильм принят!')
+        else:
+            await message.reply('Для вас фильм еще не выбран!')    
+    else:
+        pass
+
+
+@dp.message_handler(commands=['decline'])
+async def accept_movie(message: types.Message):
+    if message.chat.id in get_ids_watchers_active_roll():
+        id_advisor = get_id_advisor_from_wathcer_last_roll()
+        state_advisor = dp.current_state(user=id_advisor)
+        if await state_advisor.get_state() == 'send_movie':
+            movie = movies_temp.pop(str(id_advisor))
+            await set_find_movie(id_member=id_advisor)
+            await message.reply('Хорошо, я скажу чтоб выбрали другой! :)')
+            await bot.send_message(chat_id=id_advisor,
+                                   text='Ваш фильм не утвердили:( Выберите и напишите другой.')
+
+        else:
+            await message.reply('Для вас фильм еще не выбран!')   
+    else:
+        pass
+
+@dp.message_handler(state=AdvisorStates.FIND_MOVIE)
+async def question(message):
+    if message.chat.id in get_ids_advisor_active_roll():
+        movie = message.text
+        state_advisor = dp.current_state(user=message.from_user.id)
+        movies_temp[str(message.from_user.id)] = movie
+        await state_advisor.set_state(AdvisorStates.CHECK_MOVIE[0])
+
+        await message.reply(f'Твой фильм: {movie}.\n Да или Нет')
+    else:
+        pass
+
+
+@dp.message_handler(state=AdvisorStates.CHECK_MOVIE)
+async def agree(message: types.Message):
+    if message.chat.id in get_ids_advisor_active_roll():
+        result = message.text
+        state_advisor = dp.current_state(user=message.from_user.id)
+        if result.lower() == 'да':
+            movie = movies_temp[str(message.from_user.id)]
+            await state_advisor.set_state(AdvisorStates.SEND_MOVIE[0])
+            await message.reply(f'Ваш фильм отправлен отправлен для согласования')
+            id_wathcer = get_id_watcher_from_advisor_last_roll(id_advisor=message.from_user.id)
+            text_for_wathcer = (
+                f'{get_first_name(message.from_user.id)} {get_last_name(message.from_user.id)} '
+                f'Советует вам фильм {movie}.\n Вы принимаете фильм?\n'
+                f'Принять /accept \n Отказаться /decline'
+            )
+            await bot.send_message(
+                chat_id=id_wathcer,
+                text=text_for_wathcer
+            )
+        elif result.lower() == 'нет':
+            await state_advisor.set_state(AdvisorStates.FIND_MOVIE[0])
+            await message.reply(f'Жду фильм')
+    else:
+        pass
 
 
 if __name__ == '__main__':
