@@ -57,8 +57,17 @@ class Purposes(BaseModel):
     score = IntegerField(null=True, default=None)
 
 
+class State(BaseModel):
+    user = ForeignKeyField(Members, field='id_telegram')
+    status = CharField(choices=(('find_movie', 'Идет назначение фильмов'),
+                                ('check_movie', 'Все фильмы назначены'),
+                                ('send_movie', 'Все фильмы просмотрены')),
+                       null=True, default=None)
+
+
 if __name__ == '__main__':
     Members.create_table()
     Purposes.create_table()
     Movies.create_table()
     Rolls.create_table()
+    State.create_table()
