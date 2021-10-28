@@ -1,6 +1,7 @@
 import random
 
 from aiogram.utils.helper import Helper, HelperMode, ListItem
+from aiogram import types
 
 
 class AdvisorStates(Helper):
@@ -28,3 +29,13 @@ def shuffle_members(list_id_members: list) -> list:
     result = [advisor, watchers]
     return result
 
+
+def generate_markup_keybord(buttons: list) -> types.ReplyKeyboardMarkup:
+    """
+    Генерирует клавиатуру.
+    """
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
+    for but in buttons:
+        markup.add(but)
+
+    return markup

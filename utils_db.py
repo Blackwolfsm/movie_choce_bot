@@ -94,7 +94,7 @@ def get_id_watcher_from_advisor_last_roll(id_advisor: int) -> int:
 
 def get_id_advisor_from_wathcer_last_roll(id_watcher: int) -> int:
     roll = Rolls.select().where(Rolls.status==0).order_by(Rolls.id.desc()).get()
-    result = roll.purposes.select().where(Purposes.id_from==Members.select().where(Members.id_telegram==id_watcher)).get()
+    result = roll.purposes.select().where(Purposes.id_to==id_watcher).get()
     id_advisor = result.id_to.id_telegram
 
     return id_advisor
