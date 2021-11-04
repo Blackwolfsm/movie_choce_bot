@@ -19,6 +19,7 @@ class Members(BaseModel):
     last_name = CharField(max_length=100)
     date_registration = DateTimeField(default=dt.now())
     is_active = BooleanField(default=True)
+    id_chanel = IntegerField(column_name='Канал где участвует')  #будуший функционал
 
     def __str__(self):
         return f'{self.first_name} {self.last_name} (id: {self.id_telegram})'
@@ -41,7 +42,8 @@ class Rolls(BaseModel):
     status = IntegerField(choices=((0, 'Идет назначение фильмов'),
                                    (1, 'Все фильмы назначены'),
                                    (2, 'Все фильмы просмотрены'),
-                                   (3, 'Все фильмы оценены')),
+                                   (3, 'Все фильмы оценены'),
+                                   (4, 'Отменен')),
                           default=0)
 
 
@@ -65,9 +67,16 @@ class State(BaseModel):
                        null=True, default=None)
 
 
+class RollsInChanel(BaseModel):
+    id_chanel = IntegerField(column_name='Ид канала')
+    id_roll = ForeignKeyField(model=Rolls, field='id')
+
+
 if __name__ == '__main__':
     Members.create_table()
     Purposes.create_table()
     Movies.create_table()
     Rolls.create_table()
     State.create_table()
+    RollsInChanel.create_table()
+    
