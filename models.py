@@ -65,7 +65,7 @@ class State(BaseModel):
                                 ('check_movie', 'Все фильмы назначены'),
                                 ('send_movie', 'Все фильмы просмотрены')),
                        null=True, default=None)
-
+                       
 
 class RollsInChanel(BaseModel):
     id_chanel = IntegerField(column_name='Ид канала')
@@ -79,4 +79,3 @@ if __name__ == '__main__':
     Rolls.create_table()
     State.create_table()
     RollsInChanel.create_table()
-    

@@ -1,7 +1,9 @@
 import os
+from datetime import date, datetime
 
 from aiogram import Bot, types
 from aiogram import Dispatcher
+from aiogram.types.message import ContentType
 from aiogram.utils import executor
 import dotenv
 
@@ -12,7 +14,7 @@ from utils_db import (check_have_member, check_active, create_roll, create_user,
                       get_ids_watchers_active_roll, get_id_advisor_from_wathcer_last_roll,
                       set_movie_for_purpose, set_state, get_state, reset_state, check_all_movie_assigned,
                       get_id_chanel_from_id_member, get_all_purposes, set_status_roll)
-from utils import shuffle_members, generate_markup_keybord
+from utils import shuffle_members, generate_markup_keybord, generate_qr
 from templates import MESSAGES
 
 dotenv.load_dotenv()
@@ -24,6 +26,7 @@ dp = Dispatcher(bot)
 
 movies_temp = dict()
 
+wait_img_qr = dict()
 
 @dp.message_handler(commands=['join'])
 async def registration_user(message: types.Message):
@@ -185,6 +188,37 @@ async def check_all_assign(message: types.Message, id_roll: int):
         set_status_roll(id_roll=id_roll, id_status=1)
     else:
         pass        
+
+
+@dp.message_handler(commands=['generate_qr'])
+async def set_wait_img(message: types.Message):
+    """
+    Регистрирует состояние ожидания картинки с подписью для генерации qr code.
+    """
+    if not wait_img_qr.get(str(message.from_user.id)):
+        wait_img_qr[str(message.from_user.id)] = True
+
+    await message.reply(MESSAGES['wait_image_generate_qr'])
+
+
+@dp.message_handler(lambda message: wait_img_qr.get(str(message.from_user.id)),
+                    content_types=ContentType.PHOTO)
+async def generate_qr_code_and_send(message: types.Message):
+    """
+    Сохраняет картинку от пользователя, генерирует qr code, 
+    отправляет пользователю.
+    """
+    if message.caption:
+        now = datetime.now()
+        filename = f'{now.day}_{now.month}_{now.year}_{now.microsecond}'
+        path_to_img = os.getcwd() + os.sep + 'files' + os.sep + str(message.from_user.id) + os.sep + f'{filename}.jpg'
+        await message.photo[-1].download(path_to_img)
+        path_qr_code = generate_qr(path_to_img=path_to_img, words=message.caption, id=message.from_user.id)
+        image_qr = open(path_qr_code, 'rb')
+        await message.reply_photo(image_qr)
+        wait_img_qr.pop(str(message.from_user.id))
+    else:
+        await message.reply(MESSAGES['not_text_for_qr'])
 
 
 if __name__ == '__main__':
