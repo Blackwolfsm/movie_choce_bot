@@ -105,12 +105,13 @@ def get_ids_advisor_active_roll():
     Возвращает id всех участников которые задают фильм в последнем ролле.
     """
     result = []
-    roll = Rolls.select().where(Rolls.status==0).order_by(Rolls.id.desc()).get()
-    select = roll.purposes.select().where(Purposes.movie==None)
-    for purpose in select:
-        result.append(purpose.id_from.id_telegram)
-    
-    return result
+    try:
+        roll = Rolls.select().where(Rolls.status==0).order_by(Rolls.id.desc()).get()
+        select = roll.purposes.select().where(Purposes.movie==None)
+        for purpose in select:
+            result.append(purpose.id_from.id_telegram)
+    finally:
+        return result
 
 
 def get_ids_watchers_active_roll():
@@ -118,12 +119,13 @@ def get_ids_watchers_active_roll():
     Возвращает id всех участников которые задают фильм в последнем ролле.
     """
     result = []
-    roll = Rolls.select().where(Rolls.status==0).order_by(Rolls.id.desc()).get()
-    select = roll.purposes.select().where(Purposes.movie==None)
-    for purpose in select:
-        result.append(purpose.id_to.id_telegram)
-    
-    return result
+    try:
+        roll = Rolls.select().where(Rolls.status==0).order_by(Rolls.id.desc()).get()
+        select = roll.purposes.select().where(Purposes.movie==None)
+        for purpose in select:
+            result.append(purpose.id_to.id_telegram)
+    finally:
+        return result
 
 
 def get_movie_or_create(movie: str):
