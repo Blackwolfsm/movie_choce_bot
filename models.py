@@ -1,10 +1,13 @@
 from datetime import datetime as dt
+import os
 
-from peewee import *
+from peewee import (IntegerField, CharField, DateTimeField, BooleanField, 
+                    SqliteDatabase, FloatField, Model, ForeignKeyField)
 
-
+base_dir = os.path.dirname(__file__)
 NAME_DB = 'movie_choice.db'
-db = SqliteDatabase(NAME_DB)
+path_to_db = os.path.join(base_dir, NAME_DB)
+db = SqliteDatabase(path_to_db)
 
 
 class BaseModel(Model):
