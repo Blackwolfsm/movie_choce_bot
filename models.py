@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 import os
+from sys import path
 
 from peewee import (IntegerField, CharField, DateTimeField, BooleanField, 
                     SqliteDatabase, FloatField, Model, ForeignKeyField)
@@ -74,10 +75,20 @@ class RollsInChanel(BaseModel):
     id_roll = ForeignKeyField(model=Rolls, field='id')
 
 
-if __name__ == '__main__':
+def migrate_db():
+    '''
+    Миграция моделей бд.
+    '''
     Members.create_table()
     Purposes.create_table()
     Movies.create_table()
     Rolls.create_table()
     State.create_table()
     RollsInChanel.create_table()
+
+
+if not os.path.exists(path_to_db):
+    migrate_db()
+
+if __name__ == '__main__':
+    migrate_db()
