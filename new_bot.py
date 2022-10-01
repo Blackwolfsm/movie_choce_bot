@@ -1,10 +1,9 @@
 import os
-from datetime import date, datetime
 
 from aiogram import Bot, types
 from aiogram import Dispatcher
-from aiogram.types.message import ContentType
 from aiogram.utils import executor
+from aiogram.utils.exceptions import BotBlocked, ChatNotFound
 import dotenv
 
 from utils_db import (check_have_member, check_active, create_roll, create_user, activated_user,
@@ -14,7 +13,7 @@ from utils_db import (check_have_member, check_active, create_roll, create_user,
                       get_ids_watchers_active_roll, get_id_advisor_from_wathcer_last_roll,
                       set_movie_for_purpose, set_state, get_state, reset_state, check_all_movie_assigned,
                       get_id_chanel_from_id_member, get_all_purposes, set_status_roll)
-from utils import shuffle_members, generate_markup_keybord, generate_qr
+from utils import shuffle_members
 from templates import MESSAGES
 
 dotenv.load_dotenv()
@@ -31,20 +30,25 @@ async def registration_user(message: types.Message):
     """Регистрация пользователя."""
     user = message.from_user
     try:
-        if check_have_member(user.id):
-            if check_active(user.id):
-                await message.reply(MESSAGES['is_reg_and_active'])
+        if await check_bot_agree_for_user(user_id=user.id):
+            if check_have_member(user.id):
+                if check_active(user.id):
+                    await message.reply(MESSAGES['is_reg_and_active'])
+                else:
+                    await message.reply(MESSAGES['is_reg_and_noactive'])
             else:
-                await message.reply(MESSAGES['is_reg_and_noactive'])
+                if user.first_name and user.last_name:
+                    create_user(id_member=user.id, 
+                                first_name=user.first_name,
+                                last_name=user.last_name,
+                                id_chat=message.chat.id)
+                    await message.reply(MESSAGES['reg_is_done'])
+                else:
+                    await message.reply(MESSAGES['not_first_or_last_name'])
         else:
-            if user.first_name and user.last_name:
-                create_user(id_member=user.id, 
-                            first_name=user.first_name,
-                            last_name=user.last_name,
-                            id_chat=message.chat.id)
-                await message.reply(MESSAGES['reg_is_done'])
-            else:
-                await message.reply(MESSAGES['not_first_or_last_name'])
+            user_bot = await bot.get_me()
+            nickname_bot = user_bot.username
+            await message.reply(MESSAGES['reg_error_not_auth'].format(nickname_bot))
     except Exception as e:
         await bot.send_message(ID_FOR_REPORT, MESSAGES['report_error'].format(e))
 
@@ -58,8 +62,13 @@ async def activate_user(message: types.Message):
             if check_active(user.id):
                 await message.reply(MESSAGES['is_activate_was_active'])
             else:
-                activated_user(id_member=user.id)
-                await message.reply(MESSAGES['activate_is_done'])
+                if await check_bot_agree_for_user(user_id=user.id):
+                    activated_user(id_member=user.id)
+                    await message.reply(MESSAGES['activate_is_done'])
+                else:
+                    user_bot = await bot.get_me()
+                    nickname_bot = user_bot.username
+                    await message.reply(MESSAGES['activate_error_not_auth'].format(nickname_bot))
         else:
             await message.reply(MESSAGES['not_reg'])
     except Exception as e:
@@ -184,7 +193,21 @@ async def check_all_assign(message: types.Message, id_roll: int):
             )
         set_status_roll(id_roll=id_roll, id_status=1)
     else:
-        pass        
+        pass
+
+
+async def check_bot_agree_for_user(user_id: int) -> bool:
+    '''
+    Проверяет возможность отправки пользователю сообщений.
+    '''
+    try:
+        message = await bot.send_message(chat_id=user_id, 
+                                         text='Бип-Бип проверка')
+        await bot.delete_message(chat_id=user_id, 
+                                 message_id=message.message_id)
+        return True
+    except (BotBlocked, ChatNotFound):
+        return False
 
 
 if __name__ == '__main__':

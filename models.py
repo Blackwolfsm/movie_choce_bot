@@ -1,5 +1,4 @@
 from datetime import datetime as dt
-from typing import NoReturn
 
 from peewee import *
 
